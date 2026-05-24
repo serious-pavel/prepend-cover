@@ -1,0 +1,27 @@
+#!/bin/sh
+set -eu
+
+case "$0" in
+  /*) SELF="$0" ;;
+  *) SELF=$(cd "$(dirname "$0")" && pwd)/$(basename "$0") ;;
+esac
+
+if [ -L "$SELF" ]; then
+  TARGET=$(readlink "$SELF")
+  case "$TARGET" in
+    /*) SCRIPT_PATH="$TARGET" ;;
+    *) SCRIPT_PATH=$(cd "$(dirname "$SELF")" && pwd)/"$TARGET" ;;
+  esac
+else
+  SCRIPT_PATH="$SELF"
+fi
+
+REPO_DIR=$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd)
+PYTHON="$REPO_DIR/.venv/bin/python"
+
+if [ ! -x "$PYTHON" ]; then
+  printf '%s\n' "ERROR: expected virtualenv interpreter not found at $PYTHON" >&2
+  exit 1
+fi
+
+exec "$PYTHON" "$REPO_DIR/prepend_cover.py" "$@"

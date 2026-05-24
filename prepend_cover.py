@@ -94,8 +94,8 @@ def run_ffmpeg(work_folder, input_video, input_cover, output_file, cover_duratio
     audio_delay = f"{delay_ms}|{delay_ms}"
 
     filter_complex = (
-        f"[0:v]fps={fps},format=yuv420p[v0];"
-        f"[1:v]fps={fps},format=yuv420p[v1];"
+        f"[0:v]format=yuv420p[v0];"
+        f"[1:v]format=yuv420p[v1];"
         f"[v0][v1]concat=n=2:v=1:a=0[v];"
         f"[1:a]adelay={audio_delay},asetpts=PTS-STARTPTS[a]"
     )
@@ -105,6 +105,8 @@ def run_ffmpeg(work_folder, input_video, input_cover, output_file, cover_duratio
         "-y",
         "-loop",
         "1",
+        "-r",
+        str(fps),
         "-t",
         str(cover_duration),
         "-i",

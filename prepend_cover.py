@@ -6,6 +6,10 @@ from pathlib import Path
 import sys
 
 
+VIDEO_SUFFIXES = {".mp4"}
+COVER_SUFFIXES = {".jpg", ".jpeg", ".png"}
+
+
 def get_video_fps(video_path):
     """
     Detect source video FPS using ffprobe.
@@ -27,6 +31,45 @@ def get_video_fps(video_path):
     return num / den
 
 
+def file_sort_key(path):
+    stat = path.stat()
+    created = getattr(stat, "st_birthtime", stat.st_mtime)
+    return (max(created, stat.st_mtime), path.name)
+
+
+def find_newest_file(work_folder, suffixes, label):
+    candidates = [
+        path
+        for path in work_folder.iterdir()
+        if path.is_file() and path.suffix.lower() in suffixes
+    ]
+
+    if not candidates:
+        suffix_list = ", ".join(sorted(suffixes))
+        print(f"ERROR: No {label} file found in {work_folder} ({suffix_list})")
+        sys.exit(1)
+
+    return max(candidates, key=file_sort_key)
+
+
+def resolve_input_path(work_folder, explicit_name, suffixes, label):
+    if explicit_name:
+        path = work_folder / explicit_name
+        if not path.exists():
+            print(f"ERROR: {label} file not found: {path}")
+            sys.exit(1)
+        return path
+
+    return find_newest_file(work_folder, suffixes, label)
+
+
+def resolve_output_path(work_folder, explicit_name, video_path):
+    if explicit_name:
+        return work_folder / explicit_name
+
+    return work_folder / f"{video_path.stem}_with_cover.mp4"
+
+
 def run_ffmpeg(work_folder, input_video, input_cover, output_file, cover_duration):
     """
     Create intro-cover video using ffmpeg.
@@ -34,21 +77,16 @@ def run_ffmpeg(work_folder, input_video, input_cover, output_file, cover_duratio
 
     work_folder = Path(work_folder)
 
-    video_path = work_folder / input_video
-    cover_path = work_folder / input_cover
-    output_path = work_folder / output_file
-
-    if not video_path.exists():
-        print(f"ERROR: Video file not found: {video_path}")
-        sys.exit(1)
-
-    if not cover_path.exists():
-        print(f"ERROR: Cover file not found: {cover_path}")
-        sys.exit(1)
+    video_path = resolve_input_path(work_folder, input_video, VIDEO_SUFFIXES, "video")
+    cover_path = resolve_input_path(work_folder, input_cover, COVER_SUFFIXES, "cover")
+    output_path = resolve_output_path(work_folder, output_file, video_path)
 
     fps = get_video_fps(video_path)
 
     print(f"Detected FPS: {fps}")
+    print(f"Video: {video_path.name}")
+    print(f"Cover: {cover_path.name}")
+    print(f"Output: {output_path.name}")
 
     delay_ms = int(cover_duration * 1000)
 
@@ -119,20 +157,17 @@ def main():
 
     parser.add_argument(
         "--video",
-        required=True,
-        help="Input video filename",
+        help="Input video filename (default: newest .mp4 in work folder)",
     )
 
     parser.add_argument(
         "--cover",
-        required=True,
-        help="Input cover image filename",
+        help="Input cover filename (default: newest .jpg/.jpeg/.png in work folder)",
     )
 
     parser.add_argument(
         "--output",
-        required=True,
-        help="Output video filename",
+        help="Output video filename (default: <video_stem>_with_cover.mp4)",
     )
 
     parser.add_argument(

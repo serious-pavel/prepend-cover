@@ -113,8 +113,8 @@ def main():
 
     parser.add_argument(
         "--work-folder",
-        required=True,
-        help="Folder containing input/output files",
+        default=".",
+        help="Folder containing input/output files (default: current directory)",
     )
 
     parser.add_argument(

@@ -175,8 +175,8 @@ def main():
     parser.add_argument(
         "--cover-duration",
         type=float,
-        default=0.5,
-        help="Cover duration in seconds (default: 0.5)",
+        default=0.15,
+        help="Cover duration in seconds (default: 0.15)",
     )
 
     args = parser.parse_args()
